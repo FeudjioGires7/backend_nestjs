@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(255)
+  email     String     @unique @db.VarChar(255)
+  password  String     @unique @db.VarChar(255)
+  role      Role       @default(GESTIONNAIRE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  commandes Commande[]
+}
+
+enum Role {
+  GESTIONNAIRE
+  ADMIN
+}
+
+model invalidToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now())
+}
+
+model Emplacement {
+  id        Int       @id @default(autoincrement())
+  nom_empl  String    @db.VarChar(255)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  etageres  Etagere[]
+}
+
+model Etagere {
+  id            Int         @id @default(autoincrement())
+  emplacementId Int
+  capacite_max  Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  emplacement   Emplacement @relation(fields: [emplacementId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  produit       Produit[]
+}
+
+model Categorie {
+  id        Int       @id @default(autoincrement())
+  nom_cat   String    @db.VarChar(255)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  produits  Produit[]
+}
+
+model Produit {
+  id                Int                     @id @default(autoincrement())
+  categorieId       Int
+  etagereId         Int
+  nom_prod          String                  @db.VarChar(255)
+  descriptions_prod String                  @db.Text
+  price_unit        Int
+  qte_store         Int
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  etagere           Etagere                 @relation(fields: [etagereId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  categorie         Categorie               @relation(fields: [categorieId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  fournisseurs      FournisseurOnProduits[]
+  lignes            Ligne[]
+}
+
+model Fournisseur {
+  id                  Int                     @id @default(autoincrement())
+  nom_fournisseur     String                  @db.VarChar(255)
+  adresse_fournisseur String                  @db.VarChar(255)
+  email_fournisseur   String                  @db.VarChar(255)
+  contact_fournisseur String                  @db.VarChar(255)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  produits            FournisseurOnProduits[]
+}
+
+model Ligne {
+  id         Int      @id @default(autoincrement())
+  produitId  Int
+  commandeId Int
+  qte_cmd    Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  produit    Produit  @relation(fields: [produitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  commande   Commande @relation(fields: [commandeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model Commande {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  date_livraison  DateTime
+  status          Boolean  @default(false)
+  nom_clt         String   @db.VarChar(255)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  ligne_commandes Ligne[]
+}
+
+model FournisseurOnProduits {
+  fournisseurId Int
+  fournisseur   Fournisseur @relation(fields: [fournisseurId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  produitId     Int
+  produit       Produit     @relation(fields: [produitId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  qte_approv    Int
+  assigned      DateTime    @default(now())
+
+  @@id([fournisseurId, produitId])
+}
